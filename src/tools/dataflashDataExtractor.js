@@ -243,12 +243,24 @@ export class DataflashDataExtractor {
         return fences
     }
 
+    static isQuadPlane (messages) {
+        if ('PARM' in messages) {
+            const paramData = messages.PARM
+            for (const i in paramData.Name) {
+                if (paramData.Name[i] === 'Q_ENABLE') {
+                    return Number(paramData.Value[i]) === 1
+                }
+            }
+        }
+        return false
+    }
+
     static extractVehicleType (messages) {
         if ('MSG' in messages) {
             const msgs = messages.MSG
             for (const i in msgs.Message) {
                 if (msgs.Message[i].toLowerCase().indexOf('arduplane') > -1) {
-                    return 'airplane'
+                    return DataflashDataExtractor.isQuadPlane(messages) ? 'quadplane' : 'airplane'
                 }
                 if (msgs.Message[i].toLowerCase().indexOf('ardusub') > -1) {
                     return 'submarine'
