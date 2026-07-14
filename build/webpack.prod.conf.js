@@ -19,6 +19,13 @@ const CompressionPlugin = require('compression-webpack-plugin');
 const GitRevisionPlugin = require('git-revision-webpack-plugin')
 const gitRevisionPlugin = new GitRevisionPlugin()
 
+let commithash = 'unknown'
+try {
+  commithash = gitRevisionPlugin.commithash()
+} catch (e) {
+  console.warn('git-revision-webpack-plugin: no git repository available, using "unknown" as commit hash')
+}
+
 const env = process.env.NODE_ENV === 'testing'
   ? require('../config/test.env')
   : require('../config/prod.env')
@@ -49,7 +56,7 @@ const webpackConfig = merge(baseWebpackConfig, {
     new webpack.DefinePlugin({
       // Define relative base path in cesium for loading assets
       CESIUM_BASE_URL: JSON.stringify(''),
-      '_COMMIT_': JSON.stringify(gitRevisionPlugin.commithash()),
+      '_COMMIT_': JSON.stringify(commithash),
       '_BUILDDATE_': JSON.stringify((new Date().toString()))
     }),
     // http://vuejs.github.io/vue-loader/en/workflow/production.html
