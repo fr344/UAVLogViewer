@@ -256,11 +256,14 @@ export class DataflashDataExtractor {
     }
 
     static extractVehicleType (messages) {
+        if (DataflashDataExtractor.isQuadPlane(messages)) {
+            return 'quadplane'
+        }
         if ('MSG' in messages) {
             const msgs = messages.MSG
             for (const i in msgs.Message) {
                 if (msgs.Message[i].toLowerCase().indexOf('arduplane') > -1) {
-                    return DataflashDataExtractor.isQuadPlane(messages) ? 'quadplane' : 'airplane'
+                    return 'airplane'
                 }
                 if (msgs.Message[i].toLowerCase().indexOf('ardusub') > -1) {
                     return 'submarine'

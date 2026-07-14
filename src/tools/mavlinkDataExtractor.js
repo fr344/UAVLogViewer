@@ -102,7 +102,22 @@ export class MavlinkDataExtractor {
         return []
     }
 
+    static isQuadPlane (messages) {
+        if ('PARAM_VALUE' in messages) {
+            const paramData = messages.PARAM_VALUE
+            for (const i in paramData.param_id) {
+                if (paramData.param_id[i].replace(/[^a-z0-9A-Z_]/ig, '') === 'Q_ENABLE') {
+                    return Number(paramData.param_value[i]) === 1
+                }
+            }
+        }
+        return false
+    }
+
     static extractVehicleType (messages) {
+        if (MavlinkDataExtractor.isQuadPlane(messages)) {
+            return 'quadplane'
+        }
         if ('HEARTBEAT' in messages) {
             for (const i in messages.HEARTBEAT.craft) {
                 if (messages.HEARTBEAT.craft[i] !== undefined) {
