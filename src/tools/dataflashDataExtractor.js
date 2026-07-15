@@ -1,5 +1,6 @@
 import { ParamSeeker } from '../tools/paramseeker'
 import extractStartTime from './datetools'
+import { modeMappingApm } from './parsers/modeMaps'
 
 window.radians = function (a) {
     return 0.0174533 * a
@@ -136,10 +137,19 @@ export class DataflashDataExtractor {
         let modes = []
         if ('MODE' in messages) {
             const msgs = messages.MODE
-            modes = [[msgs.time_boot_ms[0], msgs.asText[0]]]
+            // The bundled dataflash parser picks its mode-name map from the
+            // firmware startup banner text, which can mislabel a quadplane
+            // as a plain copter when that text is missing or unrecognized.
+            // Since we already know from Q_ENABLE that this is a quadplane,
+            // resolve mode names from the ArduPlane map instead, which
+            // covers both the plane and Q-prefixed VTOL modes.
+            const quadplane = DataflashDataExtractor.isQuadPlane(messages)
+            const asText = (i) => quadplane ? modeMappingApm[msgs.Mode[i]] : msgs.asText[i]
+            modes = [[msgs.time_boot_ms[0], asText(0)]]
             for (const i in msgs.time_boot_ms) {
-                if (i !== 0 && (msgs.asText[i] !== modes[modes.length - 1][1]) && msgs.asText[i] !== null) {
-                    modes.push([msgs.time_boot_ms[i], msgs.asText[i]])
+                const text = asText(i)
+                if (i !== 0 && (text !== modes[modes.length - 1][1]) && text !== null) {
+                    modes.push([msgs.time_boot_ms[i], text])
                 }
             }
         }

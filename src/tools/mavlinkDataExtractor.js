@@ -1,5 +1,6 @@
 import { mavlink20 as mavlink } from '../libs/mavlink'
 import { ParamSeeker } from '../tools/paramseeker'
+import { modeMappingApm } from './parsers/modeMaps'
 
 const validGCSs = [
     mavlink.MAV_TYPE_FIXED_WING,
@@ -45,14 +46,23 @@ export class MavlinkDataExtractor {
         let modes = []
         if ('HEARTBEAT' in messages) {
             const msgs = messages.HEARTBEAT
-            modes = [[msgs.time_boot_ms[0], msgs.asText[0]]]
+            // A quadplane's HEARTBEAT.type can flip between fixed-wing and
+            // multirotor MAV_TYPEs depending on the current sub-mode, which
+            // picks the wrong (copter) mode map for some messages. Since we
+            // already know from Q_ENABLE that this is a quadplane, always
+            // resolve its mode names from the ArduPlane map, which covers
+            // both the plane and Q-prefixed VTOL modes.
+            const quadplane = MavlinkDataExtractor.isQuadPlane(messages)
+            const asText = (i) => quadplane ? modeMappingApm[msgs.custom_mode[i]] : msgs.asText[i]
+            modes = [[msgs.time_boot_ms[0], asText(0)]]
             for (const i in msgs.time_boot_ms) {
                 if (validGCSs.includes(msgs.type[i])) {
-                    if (msgs.asText[i] === undefined) {
-                        msgs.asText[i] = 'Unknown'
+                    let text = asText(i)
+                    if (text === undefined) {
+                        text = 'Unknown'
                     }
-                    if (msgs.asText[i] !== null && msgs.asText[i] !== modes[modes.length - 1][1]) {
-                        modes.push([msgs.time_boot_ms[i], msgs.asText[i]])
+                    if (text !== null && text !== modes[modes.length - 1][1]) {
+                        modes.push([msgs.time_boot_ms[i], text])
                     }
                 }
             }
